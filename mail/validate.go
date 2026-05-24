@@ -14,7 +14,7 @@ func Validate(email string) error {
 		errs = append(errs, errors.New(message))
 	}
 
-	if len(email) < 10 {
+	if len(email) < 6 {
 		message := fmt.Sprintf("Email addresses cannot be shorter than 10 characters. (current %d)", len(email))
 		errs = append(errs, errors.New(message))
 	}
