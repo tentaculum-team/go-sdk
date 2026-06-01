@@ -1,7 +1,7 @@
 // Package httpmw provides framework-agnostic net/http middleware mirroring
 // auth-api WithAuth / OwnerOnly / AdminOnly, backed by the auth SDK Client.
 //
-// Import path: github.com/ViitoJooj/sdk/auth/middleware/nethttp
+// Import path: github.com/Tentaculum-dev/go-sdk/auth/middleware/nethttp
 package httpmw
 
 import (
@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ViitoJooj/sdk/auth"
+	"github.com/Tentaculum-dev/go-sdk/auth"
 	"github.com/google/uuid"
 )
 

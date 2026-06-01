@@ -1,14 +1,14 @@
 // Package ginmw provides Gin middleware mirroring the auth-api WithAuth /
 // OwnerOnly / AdminOnly behavior, backed by the auth SDK Client.
 //
-// Import path: github.com/ViitoJooj/sdk/auth/middleware/gin
+// Import path: github.com/Tentaculum-dev/go-sdk/auth/middleware/gin
 package ginmw
 
 import (
 	"net/http"
 	"strings"
 
-	"github.com/ViitoJooj/sdk/auth"
+	"github.com/Tentaculum-dev/go-sdk/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )

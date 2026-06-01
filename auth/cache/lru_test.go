@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ViitoJooj/sdk/auth"
+	"github.com/Tentaculum-dev/go-sdk/auth"
 	"github.com/google/uuid"
 )
 

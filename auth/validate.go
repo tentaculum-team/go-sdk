@@ -109,9 +109,13 @@ func (o validateOutput) toIdentity() (*Identity, error) {
 	if err != nil {
 		return nil, err
 	}
-	oid, err := uuid.Parse(o.OrgID)
-	if err != nil {
-		return nil, err
+	// Personal accounts have no org; org_id is omitted (empty) → uuid.Nil.
+	var oid uuid.UUID
+	if o.OrgID != "" {
+		oid, err = uuid.Parse(o.OrgID)
+		if err != nil {
+			return nil, err
+		}
 	}
 	id := &Identity{
 		UserID:   uid,

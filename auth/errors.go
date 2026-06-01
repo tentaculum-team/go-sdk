@@ -11,6 +11,9 @@ var (
 	ErrTOTPRequired           = errors.New("auth: totp required")
 	ErrAccountPendingDeletion = errors.New("auth: account pending deletion")
 	ErrOAuthAccount           = errors.New("auth: oauth account, use provider login")
+	ErrOAuthEmailUnverified   = errors.New("auth: oauth email not verified by provider")
+	ErrOAuthLinkRequired      = errors.New("auth: email already registered, link provider from an authenticated session")
+	ErrOAuthAlreadyLinked     = errors.New("auth: provider already linked to another account")
 	ErrInvalidCredentials     = errors.New("auth: invalid credentials")
 	ErrMissingRefreshToken    = errors.New("auth: missing refresh token")
 	ErrOfflineDisabled        = errors.New("auth: offline validation disabled (no AccessSecret)")
@@ -38,6 +41,12 @@ func mapAPIError(status int, message string) error {
 		return ErrAccountPendingDeletion
 	case "oauth_account":
 		return ErrOAuthAccount
+	case "oauth_email_unverified":
+		return ErrOAuthEmailUnverified
+	case "oauth_link_required":
+		return ErrOAuthLinkRequired
+	case "oauth_already_linked":
+		return ErrOAuthAlreadyLinked
 	case "invalid credentials":
 		return ErrInvalidCredentials
 	case "invalid token", "missing bearer token":

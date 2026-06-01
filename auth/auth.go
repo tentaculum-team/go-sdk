@@ -4,8 +4,8 @@
 // wrappers for the public auth endpoints.
 //
 // Middleware lives in subpackages so non-Gin consumers don't pull Gin:
-//   - github.com/ViitoJooj/sdk/auth/middleware/gin
-//   - github.com/ViitoJooj/sdk/auth/middleware/nethttp
+//   - github.com/Tentaculum-dev/go-sdk/auth/middleware/gin
+//   - github.com/Tentaculum-dev/go-sdk/auth/middleware/nethttp
 package auth
 
 import (

@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ViitoJooj/sdk/auth"
-	"github.com/ViitoJooj/sdk/auth/cache"
-	ginmw "github.com/ViitoJooj/sdk/auth/middleware/gin"
+	"github.com/Tentaculum-dev/go-sdk/auth"
+	"github.com/Tentaculum-dev/go-sdk/auth/cache"
+	ginmw "github.com/Tentaculum-dev/go-sdk/auth/middleware/gin"
 	"github.com/gin-gonic/gin"
 )
 

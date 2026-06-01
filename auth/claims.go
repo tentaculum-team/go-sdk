@@ -30,7 +30,7 @@ const (
 // validation cannot see them (not present in the access token).
 type Identity struct {
 	UserID     uuid.UUID
-	OrgID      uuid.UUID
+	OrgID      uuid.UUID // uuid.Nil for personal accounts (no org)
 	UserType   UserType
 	IsOwner    bool
 	Role       Role
@@ -38,6 +38,13 @@ type Identity struct {
 	Username   string // remote validation only
 	AvatarUUID *uuid.UUID
 	ExpiresAt  time.Time // from JWT exp (offline) — zero when remote
+}
+
+// IsPersonal reports whether this is a personal account (no organization).
+// Personal accounts (UserType "user") have OrgID == uuid.Nil and are never
+// owners. Enterprise members always belong to an org.
+func (i *Identity) IsPersonal() bool {
+	return i.OrgID == uuid.Nil
 }
 
 // claims is the wire shape of access/refresh tokens. Matches

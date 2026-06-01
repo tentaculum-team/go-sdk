@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/ViitoJooj/sdk/validate"
+	"github.com/Tentaculum-dev/go-sdk/validate"
 )
 
 func main() {

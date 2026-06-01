@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ViitoJooj/sdk/auth"
+	"github.com/Tentaculum-dev/go-sdk/auth"
 )
 
 type entry struct {

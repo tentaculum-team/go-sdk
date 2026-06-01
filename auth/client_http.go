@@ -5,18 +5,37 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 )
 
 // ── inputs (mirror auth-api DTOs; binding tags are server-side) ───
 
+// RegisterInput drives both flows. Plan "user" is a personal account: org
+// fields are omitted and the server ignores them. Plan "enterprise" requires
+// OrgName/OrgSlug. Use NewPersonalRegister / NewEnterpriseRegister to build.
 type RegisterInput struct {
-	OrgName   string `json:"org_name"`
-	OrgSlug   string `json:"org_slug"`
 	Plan      string `json:"plan"` // "user" | "enterprise" (NOT the user_type claim space)
+	OrgName   string `json:"org_name,omitempty"`
+	OrgSlug   string `json:"org_slug,omitempty"`
 	SeatLimit *int   `json:"seat_limit,omitempty"`
 	Email     string `json:"email"`
 	Username  string `json:"username"`
 	Password  string `json:"password"`
+}
+
+// NewPersonalRegister builds a personal-account (plan "user") registration —
+// no organization.
+func NewPersonalRegister(email, username, password string) RegisterInput {
+	return RegisterInput{Plan: "user", Email: email, Username: username, Password: password}
+}
+
+// NewEnterpriseRegister builds an enterprise-account (plan "enterprise")
+// registration, which creates an organization owned by the new user.
+func NewEnterpriseRegister(orgName, orgSlug, email, username, password string) RegisterInput {
+	return RegisterInput{
+		Plan: "enterprise", OrgName: orgName, OrgSlug: orgSlug,
+		Email: email, Username: username, Password: password,
+	}
 }
 
 type LoginInput struct {
@@ -160,6 +179,40 @@ func (c *Client) Org(ctx context.Context, accessToken string) (*Organization, er
 		return nil, err
 	}
 	return &out, nil
+}
+
+// ── OAuth (browser redirect URLs) ─
+
+// OAuth providers supported by the auth service.
+const (
+	ProviderGoogle = "google"
+	ProviderGitHub = "github"
+)
+
+// OAuthLoginURL builds the URL to start an OAuth login for the given provider
+// ("google"/"github"). Redirect the user's browser here; the service sends them
+// back to redirectURI with the session (or ?erro=<code> on failure).
+func (c *Client) OAuthLoginURL(provider, redirectURI string) string {
+	return c.oauthURL(provider, "", redirectURI)
+}
+
+// OAuthLinkURL builds the URL to link a provider to the already-logged-in user.
+// The browser must carry the access_token cookie (set by the auth service);
+// the service reads it to identify who to link. On success it returns to
+// redirectURI with ?oauth=linked&provider=<provider>.
+func (c *Client) OAuthLinkURL(provider, redirectURI string) string {
+	return c.oauthURL(provider, "link", redirectURI)
+}
+
+func (c *Client) oauthURL(provider, action, redirectURI string) string {
+	path := c.apiBase + "/auth/oauth/" + provider
+	if action != "" {
+		path += "/" + action
+	}
+	if redirectURI != "" {
+		path += "?redirect_uri=" + url.QueryEscape(redirectURI)
+	}
+	return path
 }
 
 // ── internals ─

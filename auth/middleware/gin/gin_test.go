@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ViitoJooj/sdk/auth"
+	"github.com/Tentaculum-dev/go-sdk/auth"
 	"github.com/gin-gonic/gin"
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
