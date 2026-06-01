@@ -9,29 +9,39 @@ import (
 )
 
 type FirstNameConfig struct {
-	MaxChars  *int
-	MinChars  *int
+	MaxChars  int
+	MinChars  int
 	AllErrors bool
 }
 
 type LastNameConfig struct {
-	MaxChars  *int
-	MinChars  *int
+	MaxChars  int
+	MinChars  int
 	AllErrors bool
 }
 
 type FullNameConfig struct {
-	MaxChars  *int
-	MinChars  *int
+	MaxChars  int
+	MinChars  int
 	AllErrors bool
 }
 
+func DefaultFirstNameConfig() FirstNameConfig {
+	return FirstNameConfig{MaxChars: 50, MinChars: 2, AllErrors: true}
+}
+
+func DefaultLastNameConfig() LastNameConfig {
+	return LastNameConfig{MaxChars: 100, MinChars: 2, AllErrors: true}
+}
+
+func DefaultFullNameConfig() FullNameConfig {
+	return FullNameConfig{MaxChars: 150, MinChars: 5, AllErrors: true}
+}
+
 func FirstName(name string, cfg ...FirstNameConfig) error {
-	var conf FirstNameConfig
+	conf := DefaultFirstNameConfig()
 	if len(cfg) > 0 {
 		conf = cfg[0]
-	} else {
-		conf.AllErrors = true
 	}
 
 	var errs []error
@@ -41,20 +51,12 @@ func FirstName(name string, cfg ...FirstNameConfig) error {
 		return errs[0]
 	}
 
-	maxChars := 50
-	if conf.MaxChars != nil {
-		maxChars = *conf.MaxChars
-	}
-	if utf8.RuneCountInString(name) > maxChars {
-		errs = append(errs, fmt.Errorf("first name cannot exceed %d characters. (current %d)", maxChars, utf8.RuneCountInString(name)))
+	if utf8.RuneCountInString(name) > conf.MaxChars {
+		errs = append(errs, fmt.Errorf("first name cannot exceed %d characters. (current %d)", conf.MaxChars, utf8.RuneCountInString(name)))
 	}
 
-	minChars := 2
-	if conf.MinChars != nil {
-		minChars = *conf.MinChars
-	}
-	if utf8.RuneCountInString(name) < minChars {
-		errs = append(errs, fmt.Errorf("first name cannot be shorter than %d characters. (current %d)", minChars, utf8.RuneCountInString(name)))
+	if utf8.RuneCountInString(name) < conf.MinChars {
+		errs = append(errs, fmt.Errorf("first name cannot be shorter than %d characters. (current %d)", conf.MinChars, utf8.RuneCountInString(name)))
 	}
 
 	if strings.Contains(name, " ") {
@@ -90,11 +92,9 @@ func FirstName(name string, cfg ...FirstNameConfig) error {
 }
 
 func LastName(name string, cfg ...LastNameConfig) error {
-	var conf LastNameConfig
+	conf := DefaultLastNameConfig()
 	if len(cfg) > 0 {
 		conf = cfg[0]
-	} else {
-		conf.AllErrors = true
 	}
 
 	var errs []error
@@ -104,20 +104,12 @@ func LastName(name string, cfg ...LastNameConfig) error {
 		return errs[0]
 	}
 
-	maxChars := 100
-	if conf.MaxChars != nil {
-		maxChars = *conf.MaxChars
-	}
-	if utf8.RuneCountInString(name) > maxChars {
-		errs = append(errs, fmt.Errorf("last name cannot exceed %d characters. (current %d)", maxChars, utf8.RuneCountInString(name)))
+	if utf8.RuneCountInString(name) > conf.MaxChars {
+		errs = append(errs, fmt.Errorf("last name cannot exceed %d characters. (current %d)", conf.MaxChars, utf8.RuneCountInString(name)))
 	}
 
-	minChars := 2
-	if conf.MinChars != nil {
-		minChars = *conf.MinChars
-	}
-	if utf8.RuneCountInString(name) < minChars {
-		errs = append(errs, fmt.Errorf("last name cannot be shorter than %d characters. (current %d)", minChars, utf8.RuneCountInString(name)))
+	if utf8.RuneCountInString(name) < conf.MinChars {
+		errs = append(errs, fmt.Errorf("last name cannot be shorter than %d characters. (current %d)", conf.MinChars, utf8.RuneCountInString(name)))
 	}
 
 	for _, r := range name {
@@ -153,11 +145,9 @@ func LastName(name string, cfg ...LastNameConfig) error {
 }
 
 func FullName(name string, cfg ...FullNameConfig) error {
-	var conf FullNameConfig
+	conf := DefaultFullNameConfig()
 	if len(cfg) > 0 {
 		conf = cfg[0]
-	} else {
-		conf.AllErrors = true
 	}
 
 	var errs []error
@@ -167,20 +157,12 @@ func FullName(name string, cfg ...FullNameConfig) error {
 		return errs[0]
 	}
 
-	maxChars := 150
-	if conf.MaxChars != nil {
-		maxChars = *conf.MaxChars
-	}
-	if utf8.RuneCountInString(name) > maxChars {
-		errs = append(errs, fmt.Errorf("full name cannot exceed %d characters. (current %d)", maxChars, utf8.RuneCountInString(name)))
+	if utf8.RuneCountInString(name) > conf.MaxChars {
+		errs = append(errs, fmt.Errorf("full name cannot exceed %d characters. (current %d)", conf.MaxChars, utf8.RuneCountInString(name)))
 	}
 
-	minChars := 5
-	if conf.MinChars != nil {
-		minChars = *conf.MinChars
-	}
-	if utf8.RuneCountInString(name) < minChars {
-		errs = append(errs, fmt.Errorf("full name cannot be shorter than %d characters. (current %d)", minChars, utf8.RuneCountInString(name)))
+	if utf8.RuneCountInString(name) < conf.MinChars {
+		errs = append(errs, fmt.Errorf("full name cannot be shorter than %d characters. (current %d)", conf.MinChars, utf8.RuneCountInString(name)))
 	}
 
 	parts := strings.Fields(name)

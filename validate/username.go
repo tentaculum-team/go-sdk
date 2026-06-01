@@ -6,17 +6,23 @@ import (
 )
 
 type UsernameConfig struct {
-	MaxChars  *int
-	MinChars  *int
+	MaxChars  int
+	MinChars  int
 	AllErrors bool
 }
 
+func DefaultUsernameConfig() UsernameConfig {
+	return UsernameConfig{
+		MaxChars:  50,
+		MinChars:  3,
+		AllErrors: true,
+	}
+}
+
 func Username(username string, cfg ...UsernameConfig) error {
-	var conf UsernameConfig
+	conf := DefaultUsernameConfig()
 	if len(cfg) > 0 {
 		conf = cfg[0]
-	} else {
-		conf.AllErrors = true
 	}
 
 	var errs []error
@@ -26,28 +32,14 @@ func Username(username string, cfg ...UsernameConfig) error {
 		errs = append(errs, errors.New(message))
 	}
 
-	if conf.MaxChars == nil {
-		if len(username) > 50 {
-			message := fmt.Sprintf(`username cannot exceed 50 characters. (current %d)`, len(username))
-			errs = append(errs, errors.New(message))
-		}
-	} else {
-		if len(username) > *conf.MaxChars {
-			message := fmt.Sprintf(`username cannot exceed %d characters. (current %d)`, *conf.MaxChars, len(username))
-			errs = append(errs, errors.New(message))
-		}
+	if len(username) > conf.MaxChars {
+		message := fmt.Sprintf(`username cannot exceed %d characters. (current %d)`, conf.MaxChars, len(username))
+		errs = append(errs, errors.New(message))
 	}
 
-	if conf.MinChars == nil {
-		if len(username) < 3 {
-			message := fmt.Sprintf(`username addresses cannot be shorter than 3 characters. (current %d)`, len(username))
-			errs = append(errs, errors.New(message))
-		}
-	} else {
-		if len(username) < *conf.MinChars {
-			message := fmt.Sprintf(`username addresses cannot be shorter than %d characters. (current %d)`, *conf.MinChars, len(username))
-			errs = append(errs, errors.New(message))
-		}
+	if len(username) < conf.MinChars {
+		message := fmt.Sprintf(`username addresses cannot be shorter than %d characters. (current %d)`, conf.MinChars, len(username))
+		errs = append(errs, errors.New(message))
 	}
 
 	for i := 0; i < len(username); i++ {

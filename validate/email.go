@@ -7,18 +7,25 @@ import (
 )
 
 type EmailConfig struct {
-	MaxChars        *int
-	MinChars        *int
+	MaxChars        int
+	MinChars        int
 	AllowDisposable bool
 	AllErrors       bool
 }
 
+func DefaultEmailConfig() EmailConfig {
+	return EmailConfig{
+		MaxChars:        200,
+		MinChars:        6,
+		AllowDisposable: false,
+		AllErrors:       true,
+	}
+}
+
 func Mail(mail string, cfg ...EmailConfig) error {
-	var conf EmailConfig
+	conf := DefaultEmailConfig()
 	if len(cfg) > 0 {
 		conf = cfg[0]
-	} else {
-		conf.AllErrors = true
 	}
 
 	var errs []error
@@ -29,28 +36,14 @@ func Mail(mail string, cfg ...EmailConfig) error {
 		errs = append(errs, errors.New(message))
 	}
 
-	if conf.MaxChars == nil {
-		if len(mail) > 200 {
-			message := fmt.Sprintf(`mails cannot exceed 200 characters. (current %d)`, len(mail))
-			errs = append(errs, errors.New(message))
-		}
-	} else {
-		if len(mail) > *conf.MaxChars {
-			message := fmt.Sprintf(`mails cannot exceed %d characters. (current %d)`, *conf.MaxChars, len(mail))
-			errs = append(errs, errors.New(message))
-		}
+	if len(mail) > conf.MaxChars {
+		message := fmt.Sprintf(`mails cannot exceed %d characters. (current %d)`, conf.MaxChars, len(mail))
+		errs = append(errs, errors.New(message))
 	}
 
-	if conf.MinChars == nil {
-		if len(mail) < 6 {
-			message := fmt.Sprintf(`mail addresses cannot be shorter than 6 characters. (current %d)`, len(mail))
-			errs = append(errs, errors.New(message))
-		}
-	} else {
-		if len(mail) < *conf.MinChars {
-			message := fmt.Sprintf(`mail addresses cannot be shorter than %d characters. (current %d)`, *conf.MinChars, len(mail))
-			errs = append(errs, errors.New(message))
-		}
+	if len(mail) < conf.MinChars {
+		message := fmt.Sprintf(`mail addresses cannot be shorter than %d characters. (current %d)`, conf.MinChars, len(mail))
+		errs = append(errs, errors.New(message))
 	}
 
 	if !strings.Contains(mail, "@") {

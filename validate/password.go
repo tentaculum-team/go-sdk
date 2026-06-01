@@ -9,21 +9,29 @@ import (
 )
 
 type PasswordConfig struct {
-	MaxChars         *int
-	MinChars         *int
+	MaxChars         int
+	MinChars         int
 	NeedNumbers      bool
 	NeedLetters      bool
 	NeedSpecialChars bool
 	AllErrors        bool
 }
 
+func DefaultPasswordConfig() PasswordConfig {
+	return PasswordConfig{
+		MaxChars:         50,
+		MinChars:         6,
+		NeedNumbers:      false,
+		NeedLetters:      false,
+		NeedSpecialChars: true,
+		AllErrors:        true,
+	}
+}
+
 func Password(password string, cfg ...PasswordConfig) error {
-	var conf PasswordConfig
+	conf := DefaultPasswordConfig()
 	if len(cfg) > 0 {
 		conf = cfg[0]
-	} else {
-		conf.NeedSpecialChars = true
-		conf.AllErrors = true
 	}
 
 	var errs []error
@@ -33,28 +41,14 @@ func Password(password string, cfg ...PasswordConfig) error {
 		errs = append(errs, errors.New(message))
 	}
 
-	if conf.MaxChars == nil {
-		if len(password) > 50 {
-			message := fmt.Sprintf(`password cannot exceed 50 characters. (current %d)`, len(password))
-			errs = append(errs, errors.New(message))
-		}
-	} else {
-		if len(password) > *conf.MaxChars {
-			message := fmt.Sprintf(`password cannot exceed %d characters. (current %d)`, *conf.MaxChars, len(password))
-			errs = append(errs, errors.New(message))
-		}
+	if len(password) > conf.MaxChars {
+		message := fmt.Sprintf(`password cannot exceed %d characters. (current %d)`, conf.MaxChars, len(password))
+		errs = append(errs, errors.New(message))
 	}
 
-	if conf.MinChars == nil {
-		if len(password) < 6 {
-			message := fmt.Sprintf(`password addresses cannot be shorter than 6 characters. (current %d)`, len(password))
-			errs = append(errs, errors.New(message))
-		}
-	} else {
-		if len(password) < *conf.MinChars {
-			message := fmt.Sprintf(`password addresses cannot be shorter than %d characters. (current %d)`, *conf.MinChars, len(password))
-			errs = append(errs, errors.New(message))
-		}
+	if len(password) < conf.MinChars {
+		message := fmt.Sprintf(`password addresses cannot be shorter than %d characters. (current %d)`, conf.MinChars, len(password))
+		errs = append(errs, errors.New(message))
 	}
 
 	if conf.NeedNumbers {
