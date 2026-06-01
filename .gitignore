@@ -1,0 +1,113 @@
+# Secrets / env (NEVER commit) 
+# JWT_SECRET, JWT_REFRESH_SECRET, INTERNAL_JWT_SECRET, AUTH_URL_*, API keys, etc.
+.env
+.env.*
+!.env.example
+*.env
+.envrc
+.direnv/
+
+# Credentials / keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa
+id_rsa.*
+*.gpg
+*_rsa
+*_ed25519
+secrets.*
+secret.*
+credentials.*
+*-credentials.json
+service-account*.json
+gcp-*.json
+aws-credentials
+.aws/
+.npmrc
+.netrc
+auth.json
+token.txt
+*.token
+
+# Go build artifacts ───
+# Test binary, built with `go test -c`
+*.test
+# Output of `go build` / compiled object/archive
+*.o
+*.a
+*.so
+*.exe
+*.exe~
+*.dll
+*.dylib
+# Built example/cmd binaries (no extension on linux/mac)
+/bin/
+/dist/
+/build/
+/out/
+
+# Go workspace / vendor (uncomment vendor if you don't commit it)
+go.work
+go.work.sum
+# /vendor/
+
+# Coverage / profiling
+*.out
+coverage.*
+*.cover
+*.prof
+*.pprof
+cpu.prof
+mem.prof
+profile.cov
+
+# Go module/build caches (if ever placed in-repo)
+.gocache/
+.gotmp/
+
+# Editors / IDEs 
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+.history/
+*.code-workspace
+
+# OS junk 
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs / runtime 
+*.log
+logs/
+*.pid
+*.seed
+*.lock
+!go.sum
+
+# Local / scratch 
+tmp/
+temp/
+scratch/
+.local/
+*.local
+TODO.local.md
+
+# Tooling caches 
+.cache/
+.golangci-cache/
