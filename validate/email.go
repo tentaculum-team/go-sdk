@@ -232,10 +232,9 @@ func Mail(mail string, cfg ...EmailConfig) error {
 	}
 
 	if !conf.AllowDisposable {
-		disposable, err := isDisposable(mail)
-		if err != nil {
-			errs = append(errs, errors.New("internal error"))
-		} else if disposable {
+		// Fail open: if the disposable-domain list can't be loaded, skip the
+		// check instead of blocking the email.
+		if disposable, err := isDisposable(mail); err == nil && disposable {
 			errs = append(errs, errors.New("temporary mails are not allowed"))
 		}
 	}
