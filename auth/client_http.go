@@ -8,104 +8,57 @@ import (
 	"net/url"
 )
 
-// ── inputs (mirror auth-api DTOs; binding tags are server-side) ───
+// ── inputs (mirror auth-api request bodies) ───
 
-// RegisterInput drives both flows. Plan "user" is a personal account: org
-// fields are omitted and the server ignores them. Plan "enterprise" requires
-// OrgName/OrgSlug. Use NewPersonalRegister / NewEnterpriseRegister to build.
+// RegisterInput is the body of POST /auth/register. A company is a separate,
+// optional resource created later — registration only creates a personal user.
 type RegisterInput struct {
-	Plan      string `json:"plan"` // "user" | "enterprise" (NOT the user_type claim space)
-	OrgName   string `json:"org_name,omitempty"`
-	OrgSlug   string `json:"org_slug,omitempty"`
-	SeatLimit *int   `json:"seat_limit,omitempty"`
-	Email     string `json:"email"`
-	Username  string `json:"username"`
-	Password  string `json:"password"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-// NewPersonalRegister builds a personal-account (plan "user") registration —
-// no organization.
-func NewPersonalRegister(email, username, password string) RegisterInput {
-	return RegisterInput{Plan: "user", Email: email, Username: username, Password: password}
-}
-
-// NewEnterpriseRegister builds an enterprise-account (plan "enterprise")
-// registration, which creates an organization owned by the new user.
-func NewEnterpriseRegister(orgName, orgSlug, email, username, password string) RegisterInput {
-	return RegisterInput{
-		Plan: "enterprise", OrgName: orgName, OrgSlug: orgSlug,
-		Email: email, Username: username, Password: password,
-	}
+// NewRegister builds a registration body.
+func NewRegister(email, username, password string) RegisterInput {
+	return RegisterInput{Email: email, Username: username, Password: password}
 }
 
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	TOTPCode string `json:"totp_code,omitempty"`
 }
 
 // ── outputs ───
 
-// AuthResult is the `data` of login/confirm/refresh (AuthOutput).
+// AuthResult is the `data` of login/confirm/refresh.
 type AuthResult struct {
-	UserID      string  `json:"user_id"`
-	OrgID       string  `json:"org_id"`
-	UserType    string  `json:"user_type"`
-	IsOwner     bool    `json:"is_owner"`
-	Role        string  `json:"role"`
+	UserUUID    string  `json:"user_uuid"`
+	SysRole     string  `json:"sys_role"`
 	AccessToken string  `json:"access_token"`
-	AvatarUUID  *string `json:"avatar_uuid,omitempty"`
+	ImgURL      *string `json:"img_url,omitempty"`
 }
 
-// User mirrors auth-api UserOutput (GET /users/me).
+// User mirrors auth-api GET /users/me.
 type User struct {
-	ID            string  `json:"id"`
-	OrgID         string  `json:"org_id"`
-	Email         string  `json:"email"`
-	Username      string  `json:"username"`
-	FirstName     *string `json:"first_name,omitempty"`
-	LastName      *string `json:"last_name,omitempty"`
-	Phone         *string `json:"phone,omitempty"`
-	Bio           *string `json:"bio,omitempty"`
-	AvatarUUID    *string `json:"avatar_uuid,omitempty"`
-	Department    string  `json:"department,omitempty"`
-	JobTitle      *string `json:"job_title,omitempty"`
-	EmployeeID    *string `json:"employee_id,omitempty"`
-	Locale        string  `json:"locale,omitempty"`
-	Timezone      string  `json:"timezone,omitempty"`
-	BirthDate     *string `json:"birth_date,omitempty"`
-	Country       *string `json:"country,omitempty"`
-	HasPassword   bool    `json:"has_password"`
-	TOTPEnabled   bool    `json:"totp_enabled"`
-	IsActive      bool    `json:"is_active"`
-	EmailVerified bool    `json:"email_verified"`
-	LastLoginAt   *string `json:"last_login_at,omitempty"`
-	CreatedAt     string  `json:"created_at"`
-	UpdatedAt     string  `json:"updated_at"`
+	Uuid            string  `json:"uuid"`
+	ImgURL          *string `json:"img_url,omitempty"`
+	Username        string  `json:"username"`
+	Email           string  `json:"email"`
+	Phone           *string `json:"phone,omitempty"`
+	SysRole         string  `json:"sys_role"`
+	FirstName       *string `json:"first_name,omitempty"`
+	LastName        *string `json:"last_name,omitempty"`
+	EmailVerifiedAt *string `json:"email_verified_at,omitempty"`
+	GoogleAuth      bool    `json:"google_auth"`
+	GitHubAuth      bool    `json:"github_auth"`
+	CreatedAt       string  `json:"created_at"`
+	UpdatedAt       string  `json:"updated_at"`
 }
 
-// Organization mirrors auth-api OrgOutput (GET /organizations/me).
-type Organization struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Slug        string  `json:"slug"`
-	Plan        string  `json:"plan"`
-	OwnerID     string  `json:"owner_id"`
-	LogoUUID    *string `json:"logo_uuid,omitempty"`
-	Description *string `json:"description,omitempty"`
-	Website     *string `json:"website,omitempty"`
-	Country     *string `json:"country,omitempty"`
-	Industry    *string `json:"industry,omitempty"`
-	SeatLimit   *int    `json:"seat_limit,omitempty"`
-	SeatUsed    int     `json:"seat_used"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
-}
+// ── endpoint wrappers ───
 
-// ── endpoint wrappers
-
-// Login authenticates a user. May return ErrTOTPRequired (422) — re-call
-// with TOTPCode set. Returns the rotated refresh_token cookie for forwarding.
+// Login authenticates a user and returns the rotated refresh_token cookie for
+// forwarding.
 func (c *Client) Login(ctx context.Context, in LoginInput) (*AuthResult, *http.Cookie, error) {
 	env, cookies, err := c.doJSONCookies(ctx, http.MethodPost, c.apiBase+"/auth/login", in, nil)
 	if err != nil {
@@ -125,8 +78,8 @@ func (c *Client) Register(ctx context.Context, in RegisterInput) error {
 }
 
 // Refresh rotates the access token. The service reads the refresh token from
-// the refresh_token COOKIE (not the body), so it is sent as a cookie.
-// Returns the new AuthResult and the rotated refresh_token cookie.
+// the refresh_token COOKIE (not the body). Returns the new AuthResult and the
+// rotated refresh_token cookie.
 func (c *Client) Refresh(ctx context.Context, refreshToken string) (*AuthResult, *http.Cookie, error) {
 	jar := []*http.Cookie{{Name: "refresh_token", Value: refreshToken}}
 	env, cookies, err := c.doJSONCookies(ctx, http.MethodPost, c.apiBase+"/auth/token", nil, jar)
@@ -164,24 +117,7 @@ func (c *Client) Me(ctx context.Context, accessToken string) (*User, error) {
 	return &out, nil
 }
 
-// Org fetches the authenticated org (GET /organizations/me) with a Bearer token.
-func (c *Client) Org(ctx context.Context, accessToken string) (*Organization, error) {
-	req, err := c.bearerGET(ctx, c.apiBase+"/organizations/me", accessToken)
-	if err != nil {
-		return nil, err
-	}
-	env, err := c.doJSON(req, true)
-	if err != nil {
-		return nil, err
-	}
-	var out Organization
-	if err := json.Unmarshal(env.Data, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// ── OAuth (browser redirect URLs) ─
+// ── OAuth (browser redirect URLs) ───
 
 // OAuth providers supported by the auth service.
 const (
@@ -197,8 +133,8 @@ func (c *Client) OAuthLoginURL(provider, redirectURI string) string {
 }
 
 // OAuthLinkURL builds the URL to link a provider to the already-logged-in user.
-// The browser must carry the access_token cookie (set by the auth service);
-// the service reads it to identify who to link. On success it returns to
+// The browser must carry the access_token cookie (set by the auth service); the
+// service reads it to identify who to link. On success it returns to
 // redirectURI with ?oauth=linked&provider=<provider>.
 func (c *Client) OAuthLinkURL(provider, redirectURI string) string {
 	return c.oauthURL(provider, "link", redirectURI)
@@ -215,7 +151,7 @@ func (c *Client) oauthURL(provider, action, redirectURI string) string {
 	return path
 }
 
-// ── internals ─
+// ── internals ───
 
 func (c *Client) bearerGET(ctx context.Context, url, accessToken string) (*http.Request, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, url, nil)
@@ -226,8 +162,8 @@ func (c *Client) bearerGET(ctx context.Context, url, accessToken string) (*http.
 	return req, nil
 }
 
-// doJSONCookies posts a JSON body (when non-nil), attaches request cookies,
-// and returns the envelope plus the response Set-Cookie list.
+// doJSONCookies posts a JSON body (when non-nil), attaches request cookies, and
+// returns the envelope plus the response Set-Cookie list.
 func (c *Client) doJSONCookies(ctx context.Context, method, url string, body any, cookies []*http.Cookie) (*envelope, []*http.Cookie, error) {
 	if c.baseURL == "" {
 		return nil, nil, ErrNoBaseURL

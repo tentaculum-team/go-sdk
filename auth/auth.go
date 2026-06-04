@@ -1,7 +1,7 @@
 // Package auth is a Go SDK for the tentaculum-auth service. It validates
 // end-user access tokens (remote or offline), exposes the authenticated
-// identity, handles service-to-service tokens, and provides thin HTTP
-// wrappers for the public auth endpoints.
+// identity, and provides thin HTTP wrappers for the public auth endpoints
+// (register, login, refresh, logout, /users/me, OAuth URLs).
 //
 // Middleware lives in subpackages so non-Gin consumers don't pull Gin:
 //   - github.com/Tentaculum-dev/go-sdk/auth/middleware/gin
@@ -45,13 +45,10 @@ type Config struct {
 	// HTTPClient is optional; defaults to a client with a 5s timeout.
 	HTTPClient *http.Client
 
-	// AccessSecret enables OFFLINE token validation (== service JWT_SECRET).
+	// AccessPublicKey enables OFFLINE token validation: the auth service's
+	// PASETO v4.public key (hex). Verify-only — a holder cannot mint tokens.
 	// If empty, ValidateTokenLocal returns ErrOfflineDisabled.
-	AccessSecret string
-
-	// InternalSecret enables service-to-service token gen/verify
-	// (== service INTERNAL_JWT_SECRET). Optional.
-	InternalSecret string
+	AccessPublicKey string
 
 	// UserAgent appended to outbound requests. Defaults to "auth-sdk-go/<ver>".
 	UserAgent string
@@ -69,15 +66,14 @@ type Config struct {
 
 // Client talks to the auth service. Safe for concurrent use.
 type Client struct {
-	baseURL        string
-	apiBase        string // baseURL + "/api/" + version
-	http           *http.Client
-	accessSecret   []byte
-	internalSecret []byte
-	userAgent      string
-	cache          TokenCache
-	cacheCap       time.Duration
-	log            *slog.Logger
+	baseURL         string
+	apiBase         string // baseURL + "/api/" + version
+	http            *http.Client
+	accessPublicKey string
+	userAgent       string
+	cache           TokenCache
+	cacheCap        time.Duration
+	log             *slog.Logger
 }
 
 // New builds a Client. BaseURL is required unless the client is used purely
@@ -114,11 +110,8 @@ func New(cfg Config) (*Client, error) {
 		cacheCap:  cacheCap,
 		log:       log,
 	}
-	if cfg.AccessSecret != "" {
-		c.accessSecret = []byte(cfg.AccessSecret)
-	}
-	if cfg.InternalSecret != "" {
-		c.internalSecret = []byte(cfg.InternalSecret)
+	if cfg.AccessPublicKey != "" {
+		c.accessPublicKey = cfg.AccessPublicKey
 	}
 	return c, nil
 }
@@ -175,4 +168,4 @@ func (c *Client) newRequest(ctx context.Context, method, url string, body io.Rea
 }
 
 // HasOffline reports whether offline validation is configured.
-func (c *Client) HasOffline() bool { return c.accessSecret != nil }
+func (c *Client) HasOffline() bool { return c.accessPublicKey != "" }

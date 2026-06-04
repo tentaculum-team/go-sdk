@@ -43,7 +43,7 @@ Or construct directly:
 
 ```go
 client, _ := auth.New(auth.Config{
-    BaseURL:      "https://auth.internal:8080",
+    BaseURL:      "https://auth.internal:18080",
     AccessSecret: os.Getenv("JWT_SECRET"), // optional: offline path
 })
 ```

@@ -1,73 +1,25 @@
 package auth
 
-import (
-	"time"
+import "time"
 
-	gojwt "github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-)
-
-// UserType mirrors the JWT/middleware `user_type` claim verbatim.
-// Do NOT confuse with the register DTO `plan` field (user|enterprise).
-type UserType string
-
+// System roles, mirroring the auth-api `sys_role` claim.
 const (
-	UserTypePersonal   UserType = "user"
-	UserTypeEnterprise UserType = "enterprise_user"
-)
-
-// Role mirrors the JWT `role` claim.
-type Role string
-
-const (
-	RoleUser  Role = "USER"
-	RoleAdmin Role = "ADMIN"
+	RoleUser  = "USER"
+	RoleAdmin = "ADMIN"
 )
 
 // Identity is the authenticated subject handed to consumers.
 //
-// Email/Username are only populated by remote /auth/validate; offline
-// validation cannot see them (not present in the access token).
+// Email/Username/ImgURL are populated only by remote /auth/validate; offline
+// validation sees only what the access token carries (UserUUID, SysRole).
 type Identity struct {
-	UserID     uuid.UUID
-	OrgID      uuid.UUID // uuid.Nil for personal accounts (no org)
-	UserType   UserType
-	IsOwner    bool
-	Role       Role
-	Email      string // remote validation only
-	Username   string // remote validation only
-	AvatarUUID *uuid.UUID
-	ExpiresAt  time.Time // from JWT exp (offline) — zero when remote
+	UserUUID  string
+	SysRole   string
+	Email     string    // remote validation only
+	Username  string    // remote validation only
+	ImgURL    *string   // remote validation only
+	ExpiresAt time.Time // from the token's exp (offline) — zero when remote
 }
 
-// IsPersonal reports whether this is a personal account (no organization).
-// Personal accounts (UserType "user") have OrgID == uuid.Nil and are never
-// owners. Enterprise members always belong to an org.
-func (i *Identity) IsPersonal() bool {
-	return i.OrgID == uuid.Nil
-}
-
-// claims is the wire shape of access/refresh tokens. Matches
-// auth-api pkg/jwt.Claims exactly.
-type claims struct {
-	UserID   uuid.UUID `json:"user_id"`
-	OrgID    uuid.UUID `json:"org_id"`
-	UserType string    `json:"user_type"`
-	IsOwner  bool      `json:"is_owner"`
-	Role     string    `json:"role"`
-	gojwt.RegisteredClaims
-}
-
-func (cl *claims) toIdentity() *Identity {
-	id := &Identity{
-		UserID:   cl.UserID,
-		OrgID:    cl.OrgID,
-		UserType: UserType(cl.UserType),
-		IsOwner:  cl.IsOwner,
-		Role:     Role(cl.Role),
-	}
-	if cl.ExpiresAt != nil {
-		id.ExpiresAt = cl.ExpiresAt.Time
-	}
-	return id
-}
+// IsAdmin reports whether the subject holds the ADMIN system role.
+func (i *Identity) IsAdmin() bool { return i.SysRole == RoleAdmin }

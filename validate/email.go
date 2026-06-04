@@ -15,7 +15,7 @@ type EmailConfig struct {
 
 func DefaultEmailConfig() EmailConfig {
 	return EmailConfig{
-		MaxChars:        200,
+		MaxChars:        150,
 		MinChars:        6,
 		AllowDisposable: false,
 		AllErrors:       true,

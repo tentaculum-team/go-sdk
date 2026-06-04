@@ -8,62 +8,47 @@ import (
 	"testing"
 	"time"
 
-	gojwt "github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"aidanwoods.dev/go-paseto"
 )
 
-const testSecret = "test-access-secret"
-
-// signAccess builds an HS256 access token shaped like auth-api Claims.
-func signAccess(t *testing.T, secret string, ttl time.Duration, method gojwt.SigningMethod) string {
-	t.Helper()
-	cl := gojwt.MapClaims{
-		"user_id":   uuid.New().String(),
-		"org_id":    uuid.New().String(),
-		"user_type": "user",
-		"is_owner":  true,
-		"role":      "ADMIN",
-		"exp":       time.Now().Add(ttl).Unix(),
-		"iat":       time.Now().Unix(),
-		"jti":       uuid.New().String(),
-	}
-	tok := gojwt.NewWithClaims(method, cl)
-	var key any = []byte(secret)
-	s, err := tok.SignedString(key)
-	if err != nil {
-		t.Fatalf("sign: %v", err)
-	}
-	return s
+func signAccess(secret paseto.V4AsymmetricSecretKey, ttl time.Duration) string {
+	t := paseto.NewToken()
+	now := time.Now()
+	t.SetIssuedAt(now)
+	t.SetExpiration(now.Add(ttl))
+	t.SetString("typ", "access")
+	t.SetString("user_uuid", "u1")
+	t.SetString("sys_role", "ADMIN")
+	return t.V4Sign(secret, nil)
 }
 
 func TestValidateTokenLocal(t *testing.T) {
-	c, _ := New(Config{AccessSecret: testSecret})
+	secret := paseto.NewV4AsymmetricSecretKey()
+	c, _ := New(Config{AccessPublicKey: secret.Public().ExportHex()})
 
 	t.Run("valid", func(t *testing.T) {
-		tok := signAccess(t, testSecret, 15*time.Minute, gojwt.SigningMethodHS256)
-		id, err := c.ValidateTokenLocal(tok)
+		id, err := c.ValidateTokenLocal(signAccess(secret, 15*time.Minute))
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)
 		}
-		if id.UserType != UserTypePersonal || id.Role != RoleAdmin || !id.IsOwner {
+		if id.UserUUID != "u1" || id.SysRole != RoleAdmin {
 			t.Fatalf("bad identity: %+v", id)
 		}
 		if id.ExpiresAt.IsZero() {
-			t.Fatal("ExpiresAt should be set from exp")
+			t.Fatal("ExpiresAt should be set")
 		}
 	})
 
 	t.Run("expired", func(t *testing.T) {
-		tok := signAccess(t, testSecret, -time.Minute, gojwt.SigningMethodHS256)
-		_, err := c.ValidateTokenLocal(tok)
+		_, err := c.ValidateTokenLocal(signAccess(secret, -time.Minute))
 		if !errors.Is(err, ErrTokenExpired) {
 			t.Fatalf("want ErrTokenExpired, got %v", err)
 		}
 	})
 
-	t.Run("wrong secret", func(t *testing.T) {
-		tok := signAccess(t, "other-secret", 15*time.Minute, gojwt.SigningMethodHS256)
-		_, err := c.ValidateTokenLocal(tok)
+	t.Run("wrong key", func(t *testing.T) {
+		other := paseto.NewV4AsymmetricSecretKey()
+		_, err := c.ValidateTokenLocal(signAccess(other, 15*time.Minute))
 		if !errors.Is(err, ErrInvalidToken) {
 			t.Fatalf("want ErrInvalidToken, got %v", err)
 		}
@@ -79,7 +64,7 @@ func TestValidateTokenLocal(t *testing.T) {
 }
 
 func TestValidateTokenRemote(t *testing.T) {
-	uid, oid := uuid.New(), uuid.New()
+	uid := "0190a6c2-0000-7000-8000-000000000000"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/auth/validate" {
 			t.Errorf("bad path: %s", r.URL.Path)
@@ -91,8 +76,7 @@ func TestValidateTokenRemote(t *testing.T) {
 		}
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte(`{"success":true,"message":"valid","data":{` +
-			`"user_id":"` + uid.String() + `","org_id":"` + oid.String() + `",` +
-			`"user_type":"enterprise_user","is_owner":false,"role":"USER",` +
+			`"user_uuid":"` + uid + `","sys_role":"USER",` +
 			`"email":"a@b.com","username":"alice"}}`))
 	}))
 	defer srv.Close()
@@ -104,11 +88,11 @@ func TestValidateTokenRemote(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected: %v", err)
 		}
-		if id.UserID != uid || id.Email != "a@b.com" || id.Username != "alice" {
+		if id.UserUUID != uid || id.Email != "a@b.com" || id.Username != "alice" {
 			t.Fatalf("bad identity: %+v", id)
 		}
-		if id.UserType != UserTypeEnterprise {
-			t.Fatalf("bad user_type: %s", id.UserType)
+		if id.SysRole != RoleUser {
+			t.Fatalf("bad sys_role: %s", id.SysRole)
 		}
 	})
 
@@ -130,12 +114,11 @@ func TestValidateTokenRemote(t *testing.T) {
 
 func TestMapAPIError(t *testing.T) {
 	cases := map[string]error{
-		"totp_required":            ErrTOTPRequired,
-		"account_pending_deletion": ErrAccountPendingDeletion,
-		"oauth_account":            ErrOAuthAccount,
-		"invalid credentials":      ErrInvalidCredentials,
-		"invalid token":            ErrInvalidToken,
-		"missing refresh token":    ErrMissingRefreshToken,
+		"oauth_account":         ErrOAuthAccount,
+		"oauth_link_required":   ErrOAuthLinkRequired,
+		"invalid credentials":   ErrInvalidCredentials,
+		"invalid token":         ErrInvalidToken,
+		"missing refresh token": ErrMissingRefreshToken,
 	}
 	for msg, want := range cases {
 		if got := mapAPIError(400, msg); !errors.Is(got, want) {

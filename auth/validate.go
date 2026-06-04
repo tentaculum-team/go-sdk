@@ -5,27 +5,23 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"net/http"
+	"strings"
 
-	gojwt "github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
+	"aidanwoods.dev/go-paseto"
 )
 
 // validateOutput is the `data` shape of GET /auth/validate.
 type validateOutput struct {
-	UserID     string  `json:"user_id"`
-	OrgID      string  `json:"org_id"`
-	UserType   string  `json:"user_type"`
-	IsOwner    bool    `json:"is_owner"`
-	Role       string  `json:"role"`
-	Email      string  `json:"email"`
-	Username   string  `json:"username"`
-	AvatarUUID *string `json:"avatar_uuid,omitempty"`
+	UserUUID string  `json:"user_uuid"`
+	SysRole  string  `json:"sys_role"`
+	Email    string  `json:"email"`
+	Username string  `json:"username"`
+	ImgURL   *string `json:"img_url,omitempty"`
 }
 
 // ValidateToken validates an access token remotely via GET /auth/validate.
-// No secret sharing; returns email/username; honors central revocation.
+// No key sharing; returns email/username; honors central revocation.
 //
 // Maps 401 -> ErrInvalidToken. Retries an idempotent GET once on a
 // connection error (never on 401). Uses the configured cache if set.
@@ -57,81 +53,63 @@ func (c *Client) ValidateToken(ctx context.Context, accessToken string) (*Identi
 	if err := json.Unmarshal(env.Data, &out); err != nil {
 		return nil, err
 	}
-	id, err := out.toIdentity()
-	if err != nil {
-		return nil, err
-	}
+	id := out.toIdentity()
 
 	if c.cache != nil {
 		c.cache.Set(key, id, c.cacheCap)
 	}
-	c.log.Debug("token validated remotely", "user_id", id.UserID, "org_id", id.OrgID)
+	c.log.Debug("token validated remotely", "user_uuid", id.UserUUID)
 	return id, nil
 }
 
-// ValidateTokenLocal validates an access token offline using AccessSecret
-// (== service JWT_SECRET). Zero network. Cannot see server-side revocation;
-// a logged-out access token stays valid until exp (<=15m), same as the
-// service's own middleware.
+// ValidateTokenLocal validates an access token offline using the auth service's
+// PASETO v4.public key (AccessPublicKey). Zero network. Cannot see server-side
+// revocation; a logged-out access token stays valid until exp.
 //
-// Returns ErrOfflineDisabled if AccessSecret is empty, ErrTokenExpired on
+// Returns ErrOfflineDisabled if AccessPublicKey is empty, ErrTokenExpired on
 // expiry, ErrInvalidToken otherwise. Email/Username are not populated.
 func (c *Client) ValidateTokenLocal(accessToken string) (*Identity, error) {
-	if c.accessSecret == nil {
+	if c.accessPublicKey == "" {
 		return nil, ErrOfflineDisabled
 	}
-	return parseAccess(accessToken, c.accessSecret)
+	return parseAccess(accessToken, c.accessPublicKey)
 }
 
-// parseAccess mirrors auth-api pkg/jwt.parse: HS256 only, reject non-HMAC.
-func parseAccess(raw string, secret []byte) (*Identity, error) {
-	var cl claims
-	token, err := gojwt.ParseWithClaims(raw, &cl, func(t *gojwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*gojwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return secret, nil
-	})
+// parseAccess verifies a PASETO v4.public access token with the public key.
+func parseAccess(raw, pubHex string) (*Identity, error) {
+	key, err := paseto.NewV4AsymmetricPublicKeyFromHex(pubHex)
 	if err != nil {
-		if errors.Is(err, gojwt.ErrTokenExpired) {
+		return nil, ErrInvalidToken
+	}
+	parser := paseto.NewParser() // NotExpired rule preloaded
+	t, err := parser.ParseV4Public(key, raw, nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "expired") {
 			return nil, ErrTokenExpired
 		}
 		return nil, ErrInvalidToken
 	}
-	if !token.Valid {
+	if typ, _ := t.GetString("typ"); typ != "access" {
 		return nil, ErrInvalidToken
 	}
-	return cl.toIdentity(), nil
-}
 
-func (o validateOutput) toIdentity() (*Identity, error) {
-	uid, err := uuid.Parse(o.UserID)
-	if err != nil {
-		return nil, err
-	}
-	// Personal accounts have no org; org_id is omitted (empty) → uuid.Nil.
-	var oid uuid.UUID
-	if o.OrgID != "" {
-		oid, err = uuid.Parse(o.OrgID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	id := &Identity{
-		UserID:   uid,
-		OrgID:    oid,
-		UserType: UserType(o.UserType),
-		IsOwner:  o.IsOwner,
-		Role:     Role(o.Role),
-		Email:    o.Email,
-		Username: o.Username,
-	}
-	if o.AvatarUUID != nil && *o.AvatarUUID != "" {
-		if av, err := uuid.Parse(*o.AvatarUUID); err == nil {
-			id.AvatarUUID = &av
-		}
+	id := &Identity{}
+	id.UserUUID, _ = t.GetString("user_uuid")
+	id.SysRole, _ = t.GetString("sys_role")
+	if exp, err := t.GetExpiration(); err == nil {
+		id.ExpiresAt = exp
 	}
 	return id, nil
+}
+
+func (o validateOutput) toIdentity() *Identity {
+	return &Identity{
+		UserUUID: o.UserUUID,
+		SysRole:  o.SysRole,
+		Email:    o.Email,
+		Username: o.Username,
+		ImgURL:   o.ImgURL,
+	}
 }
 
 func cacheKey(token string) string {

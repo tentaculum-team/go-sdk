@@ -6,19 +6,16 @@ import (
 )
 
 var (
-	ErrInvalidToken           = errors.New("auth: invalid token")
-	ErrTokenExpired           = errors.New("auth: token expired")
-	ErrTOTPRequired           = errors.New("auth: totp required")
-	ErrAccountPendingDeletion = errors.New("auth: account pending deletion")
-	ErrOAuthAccount           = errors.New("auth: oauth account, use provider login")
-	ErrOAuthEmailUnverified   = errors.New("auth: oauth email not verified by provider")
-	ErrOAuthLinkRequired      = errors.New("auth: email already registered, link provider from an authenticated session")
-	ErrOAuthAlreadyLinked     = errors.New("auth: provider already linked to another account")
-	ErrInvalidCredentials     = errors.New("auth: invalid credentials")
-	ErrMissingRefreshToken    = errors.New("auth: missing refresh token")
-	ErrOfflineDisabled        = errors.New("auth: offline validation disabled (no AccessSecret)")
-	ErrInternalDisabled       = errors.New("auth: service tokens disabled (no InternalSecret)")
-	ErrNoBaseURL              = errors.New("auth: BaseURL required for remote calls")
+	ErrInvalidToken         = errors.New("auth: invalid token")
+	ErrTokenExpired         = errors.New("auth: token expired")
+	ErrOAuthAccount         = errors.New("auth: oauth account, use provider login")
+	ErrOAuthEmailUnverified = errors.New("auth: oauth email not verified by provider")
+	ErrOAuthLinkRequired    = errors.New("auth: email already registered, link provider from an authenticated session")
+	ErrOAuthAlreadyLinked   = errors.New("auth: provider already linked to another account")
+	ErrInvalidCredentials   = errors.New("auth: invalid credentials")
+	ErrMissingRefreshToken  = errors.New("auth: missing refresh token")
+	ErrOfflineDisabled      = errors.New("auth: offline validation disabled (no AccessSecret)")
+	ErrNoBaseURL            = errors.New("auth: BaseURL required for remote calls")
 )
 
 // APIError wraps any non-2xx the SDK didn't map to a sentinel.
@@ -35,10 +32,6 @@ func (e *APIError) Error() string {
 // auth-api) into a sentinel, falling back to *APIError.
 func mapAPIError(status int, message string) error {
 	switch message {
-	case "totp_required":
-		return ErrTOTPRequired
-	case "account_pending_deletion":
-		return ErrAccountPendingDeletion
 	case "oauth_account":
 		return ErrOAuthAccount
 	case "oauth_email_unverified":

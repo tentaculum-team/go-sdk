@@ -15,8 +15,8 @@ import (
 )
 
 func main() {
-	// Config from env: picks AUTH_URL_DEV / AUTH_URL_PROD by AUTH_ENV,
-	// falls back to AUTH_URL. JWT_SECRET (offline) + INTERNAL_JWT_SECRET optional.
+	// Config from env: picks AUTH_URL_DEV / AUTH_URL_PROD by AUTH_ENV, falls
+	// back to AUTH_URL. JWT_SECRET (offline validation) optional.
 	cfg := auth.ConfigFromEnv()
 	if cfg.BaseURL == "" {
 		log.Fatal("set AUTH_URL (or AUTH_URL_DEV/PROD)")
@@ -36,19 +36,12 @@ func main() {
 	api := r.Group("/api/v1", ginmw.WithAuth(client))
 	api.GET("/things", func(c *gin.Context) {
 		id, _ := ginmw.IdentityFrom(c)
-		c.JSON(http.StatusOK, gin.H{
-			"user_id": id.UserID, "org_id": id.OrgID, "role": id.Role,
-		})
+		c.JSON(http.StatusOK, gin.H{"user_uuid": id.UserUUID, "sys_role": id.SysRole})
 	})
 
-	// Owner-only subgroup.
-	owner := api.Group("/admin", ginmw.OwnerOnly())
-	owner.POST("/things", func(c *gin.Context) { c.JSON(http.StatusCreated, gin.H{"ok": true}) })
-
-	// Service-to-service endpoint (X-Service-Token), if INTERNAL_JWT_SECRET set.
-	r.GET("/internal/ping", ginmw.RequireServiceToken(client), func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"pong": true})
-	})
+	// Admin-only subgroup (sys_role == ADMIN).
+	admin := api.Group("/admin", ginmw.RequireRole(auth.RoleAdmin))
+	admin.POST("/things", func(c *gin.Context) { c.JSON(http.StatusCreated, gin.H{"ok": true}) })
 
 	addr := ":" + envOr("PORT", "9090")
 	log.Printf("listening on %s (prod=%v)", addr, auth.IsProd())

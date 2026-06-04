@@ -12,17 +12,15 @@ import "os"
 //
 // If the per-env URL is unset, falls back to AUTH_URL.
 //
-// Secrets (optional):
+// Keys (optional):
 //
-//	JWT_SECRET           -> AccessSecret   (enables offline validation)
-//	INTERNAL_JWT_SECRET  -> InternalSecret (enables service tokens)
-//	AUTH_USER_AGENT      -> UserAgent
+//	AUTH_PUBLIC_KEY  -> AccessPublicKey (PASETO public key; enables offline validation)
+//	AUTH_USER_AGENT  -> UserAgent
 func ConfigFromEnv() Config {
 	return Config{
-		BaseURL:        resolveBaseURL(),
-		AccessSecret:   os.Getenv("JWT_SECRET"),
-		InternalSecret: os.Getenv("INTERNAL_JWT_SECRET"),
-		UserAgent:      os.Getenv("AUTH_USER_AGENT"),
+		BaseURL:         resolveBaseURL(),
+		AccessPublicKey: os.Getenv("AUTH_PUBLIC_KEY"),
+		UserAgent:       os.Getenv("AUTH_USER_AGENT"),
 	}
 }
 

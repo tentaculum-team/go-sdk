@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func id() *auth.Identity { return &auth.Identity{UserID: uuid.New()} }
+func id() *auth.Identity { return &auth.Identity{UserUUID: uuid.New().String()} }
 
 func TestLRUGetSet(t *testing.T) {
 	c := NewLRU(2)
