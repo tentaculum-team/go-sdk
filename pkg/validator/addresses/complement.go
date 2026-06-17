@@ -3,6 +3,11 @@ package validator
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/Tentaculum-dev/go-sdk/internal/utils"
 )
 
 type ComplementConfig struct {
@@ -12,39 +17,52 @@ type ComplementConfig struct {
 }
 
 func DefaultComplementConfig() ComplementConfig {
-	return ComplementConfig{
-		MaxChars:  255,
-		MinChars:  0,
-		AllErrors: true,
-	}
+	return ComplementConfig{MaxChars: 255, MinChars: 0, AllErrors: true}
 }
 
+// Complement validates an address complement/second line for the global market
+// ("Apt 4B", "2nd floor", "Bloco C / Sala 12"). Same character set as Street.
 func Complement(complement string, cfg ...ComplementConfig) error {
 	conf := DefaultComplementConfig()
 	if len(cfg) > 0 {
 		conf = cfg[0]
 	}
 
-	var errs []error
-
+	complement = strings.TrimSpace(complement)
 	if complement == "" {
-		errs = append(errs, fmt.Errorf("complement is required"))
+		return errors.New("complement cannot be empty.")
 	}
 
-	if conf.MinChars > 0 && len(complement) < conf.MinChars {
-		errs = append(errs, fmt.Errorf("complement must be at least %d characters long", conf.MinChars))
+	var errs []error
+	n := utf8.RuneCountInString(complement)
+
+	if conf.MaxChars > 0 && n > conf.MaxChars {
+		errs = append(errs, fmt.Errorf("complement cannot exceed %d characters. (current %d)", conf.MaxChars, n))
+	}
+	if conf.MinChars > 0 && n < conf.MinChars {
+		errs = append(errs, fmt.Errorf("complement cannot be shorter than %d characters. (current %d)", conf.MinChars, n))
+	}
+	if utils.ContainsNullByte(complement) || utils.ContainsControlChars(complement) {
+		errs = append(errs, errors.New("complement cannot contain control characters."))
+	}
+	if utils.ContainsInvalidUTF8(complement) {
+		errs = append(errs, errors.New("complement contains invalid UTF-8 characters."))
+	}
+	for _, r := range complement {
+		if unicode.IsLetter(r) || unicode.IsMark(r) || unicode.IsDigit(r) ||
+			strings.ContainsRune(streetAllowedPunct, r) {
+			continue
+		}
+		errs = append(errs, fmt.Errorf("complement contains an invalid character: '%c'.", r))
+		break
 	}
 
-	if conf.MaxChars > 0 && len(complement) > conf.MaxChars {
-		errs = append(errs, fmt.Errorf("complement must be at most %d characters long", conf.MaxChars))
-	}
-
-	if len(errs) > 0 {
-		if conf.AllErrors {
+	if conf.AllErrors {
+		if len(errs) > 0 {
 			return errors.Join(errs...)
 		}
+	} else if len(errs) > 0 {
 		return errs[0]
 	}
-
 	return nil
 }
