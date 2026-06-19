@@ -74,6 +74,7 @@ type Product struct {
 	Currency        string  `json:"currency"`
 	BillingInterval *string `json:"billing_interval,omitempty"`
 	Active          bool    `json:"active"`
+	Slug            *string `json:"slug,omitempty"`
 	ImageURL        *string `json:"image_url,omitempty"`
 }
 
