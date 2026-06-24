@@ -1,9 +1,11 @@
-package validate
+package validator
 
 import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/Tentaculum-dev/go-sdk/internal/utils"
 )
 
 type EmailConfig struct {
@@ -15,11 +17,20 @@ type EmailConfig struct {
 
 func DefaultEmailConfig() EmailConfig {
 	return EmailConfig{
-		MaxChars:        200,
+		MaxChars:        150,
 		MinChars:        6,
 		AllowDisposable: false,
 		AllErrors:       true,
 	}
+}
+
+func hasAccent(mail string) bool {
+	for _, r := range mail {
+		if r > 127 {
+			return true
+		}
+	}
+	return false
 }
 
 func Mail(mail string, cfg ...EmailConfig) error {
@@ -232,10 +243,7 @@ func Mail(mail string, cfg ...EmailConfig) error {
 	}
 
 	if !conf.AllowDisposable {
-		disposable, err := isDisposable(mail)
-		if err != nil {
-			errs = append(errs, errors.New("internal error"))
-		} else if disposable {
+		if disposable, err := utils.IsDisposable(mail); err == nil && disposable {
 			errs = append(errs, errors.New("temporary mails are not allowed"))
 		}
 	}

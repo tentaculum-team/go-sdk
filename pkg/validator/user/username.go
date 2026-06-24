@@ -1,8 +1,10 @@
-package validate
+package validator
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/Tentaculum-dev/go-sdk/internal/utils"
 )
 
 type UsernameConfig struct {
@@ -43,22 +45,22 @@ func Username(username string, cfg ...UsernameConfig) error {
 	}
 
 	for i := 0; i < len(username); i++ {
-		c := username[i]
+		usernameChar := username[i]
 
-		if (c >= 'a' && c <= 'z') ||
-			(c >= 'A' && c <= 'Z') ||
-			(c >= '0' && c <= '9') ||
-			c == '_' ||
-			c == '-' ||
-			c == '.' {
+		if (usernameChar >= 'a' && usernameChar <= 'z') ||
+			(usernameChar >= 'A' && usernameChar <= 'Z') ||
+			(usernameChar >= '0' && usernameChar <= '9') ||
+			usernameChar == '_' ||
+			usernameChar == '-' ||
+			usernameChar == '.' {
 			continue
 		}
 
-		message := fmt.Sprintf("The username contains an invalid character: '%c'.", c)
+		message := fmt.Sprintf("The username contains an invalid character: '%c'.", usernameChar)
 		errs = append(errs, errors.New(message))
 	}
 
-	if isNumericOnly(username) {
+	if utils.IsNumericOnly(username) {
 		message := "username cannot contain only numbers."
 		errs = append(errs, errors.New(message))
 	}
@@ -74,18 +76,4 @@ func Username(username string, cfg ...UsernameConfig) error {
 	}
 
 	return nil
-}
-
-func isNumericOnly(username string) bool {
-	if len(username) == 0 {
-		return false
-	}
-
-	for i := 0; i < len(username); i++ {
-		if username[i] < '0' || username[i] > '9' {
-			return false
-		}
-	}
-
-	return true
 }

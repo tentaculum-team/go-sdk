@@ -1,4 +1,4 @@
-package validate
+package utils
 
 import (
 	"bufio"
@@ -40,7 +40,7 @@ func loadDomains() {
 	loadErr = scanner.Err()
 }
 
-func isDisposable(mail string) (bool, error) {
+func IsDisposable(mail string) (bool, error) {
 	once.Do(loadDomains)
 
 	if loadErr != nil {
@@ -57,13 +57,4 @@ func isDisposable(mail string) (bool, error) {
 	_, exists := domains[domain]
 
 	return exists, nil
-}
-
-func hasAccent(mail string) bool {
-	for _, r := range mail {
-		if r > 127 {
-			return true
-		}
-	}
-	return false
 }
