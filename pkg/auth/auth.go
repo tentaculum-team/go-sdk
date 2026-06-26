@@ -4,8 +4,8 @@
 // (register, login, refresh, logout, /users/me, OAuth URLs).
 //
 // Middleware lives in subpackages so non-Gin consumers don't pull Gin:
-//   - github.com/Tentaculum-dev/go-sdk/auth/middleware/gin
-//   - github.com/Tentaculum-dev/go-sdk/auth/middleware/nethttp
+//   - github.com/tentaculum-team/go-sdk/auth/middleware/gin
+//   - github.com/tentaculum-team/go-sdk/auth/middleware/nethttp
 package auth
 
 import (

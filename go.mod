@@ -1,4 +1,4 @@
-module github.com/Tentaculum-dev/go-sdk
+module github.com/tentaculum-team/go-sdk
 
 go 1.26.2
 

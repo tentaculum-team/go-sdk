@@ -4,7 +4,7 @@ Cliente server-side pro serviço de arquivos (driver). Confia no modelo de
 identidade do gateway (`X-User-UUID` / `X-Sys-Role`) — use **só na rede interna**.
 
 ```go
-import "github.com/Tentaculum-dev/go-sdk/driver"
+import "github.com/tentaculum-team/go-sdk/driver"
 
 cli := driver.New(driver.ConfigFromEnv()) // ou driver.New("http://driver:8082")
 

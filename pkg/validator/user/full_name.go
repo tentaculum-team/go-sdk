@@ -7,7 +7,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/Tentaculum-dev/go-sdk/internal/utils"
+	"github.com/tentaculum-team/go-sdk/internal/utils"
 )
 
 type FullNameConfig struct {

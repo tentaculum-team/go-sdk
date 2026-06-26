@@ -5,7 +5,7 @@ billing (a empresa do chamador tem assinatura ativa?). Confia no modelo de
 identidade do gateway (`X-User-UUID` / `X-Sys-Role`) — use **só na rede interna**.
 
 ```go
-import "github.com/Tentaculum-dev/go-sdk/payments"
+import "github.com/tentaculum-team/go-sdk/payments"
 
 cli := payments.New(payments.ConfigFromEnv()) // ou payments.New("http://payments:18082")
 

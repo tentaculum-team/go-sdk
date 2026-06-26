@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"aidanwoods.dev/go-paseto"
-	"github.com/Tentaculum-dev/go-sdk/pkg/auth"
+	"github.com/tentaculum-team/go-sdk/pkg/auth"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,7 +1,7 @@
 // Package httpmw provides framework-agnostic net/http middleware mirroring
 // auth-api authentication, backed by the auth SDK Client.
 //
-// Import path: github.com/Tentaculum-dev/go-sdk/auth/middleware/nethttp
+// Import path: github.com/tentaculum-team/go-sdk/auth/middleware/nethttp
 package httpmw
 
 import (
@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Tentaculum-dev/go-sdk/pkg/auth"
+	"github.com/tentaculum-team/go-sdk/pkg/auth"
 )
 
 type ctxKeyType struct{}

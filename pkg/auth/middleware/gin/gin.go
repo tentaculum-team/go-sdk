@@ -1,14 +1,14 @@
 // Package ginmw provides Gin middleware mirroring the auth-api authentication,
 // backed by the auth SDK Client.
 //
-// Import path: github.com/Tentaculum-dev/go-sdk/auth/middleware/gin
+// Import path: github.com/tentaculum-team/go-sdk/auth/middleware/gin
 package ginmw
 
 import (
 	"net/http"
 	"strings"
 
-	"github.com/Tentaculum-dev/go-sdk/pkg/auth"
+	"github.com/tentaculum-team/go-sdk/pkg/auth"
 	"github.com/gin-gonic/gin"
 )
 
